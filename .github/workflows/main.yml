@@ -26,17 +26,29 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Find project folder
+        id: proj
+        run: |
+          F=$(find . -name settings.gradle.kts | head -n 1)
+          if [ -z "$F" ]; then
+            echo "settings.gradle.kts not found. Files in repo:"
+            find . -maxdepth 3 -not -path "./.git/*" | head -60
+            exit 1
+          fi
+          echo "dir=$(dirname "$F")" >> "$GITHUB_OUTPUT"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
 
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        working-directory: ${{ steps.proj.outputs.dir }}
+        run: gradle assembleDebug --console=plain
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TouchAssist-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
