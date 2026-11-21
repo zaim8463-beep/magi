@@ -26,15 +26,26 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null || true
           "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Unzip project if needed
+        run: |
+          if [ -z "$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)" ]; then
+            mkdir -p project_src
+            for z in ./*.zip; do
+              echo "Unzipping $z"
+              unzip -o -q "$z" -d project_src
+            done
+          fi
+
       - name: Find project folder
         id: proj
         run: |
-          F=$(find . -name settings.gradle.kts | head -n 1)
+          F=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
           if [ -z "$F" ]; then
             echo "settings.gradle.kts not found. Files in repo:"
             find . -maxdepth 3 -not -path "./.git/*" | head -60
             exit 1
           fi
+          echo "Project found in: $(dirname "$F")"
           echo "dir=$(dirname "$F")" >> "$GITHUB_OUTPUT"
 
       - name: Set up Gradle
